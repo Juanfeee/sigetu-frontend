@@ -4,9 +4,10 @@ class DashboardCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color? cardColor;    // color de la tarjeta
-  final Color? iconColor;    // color del icono
-  final Color? textColor;    // color del texto
+  final LinearGradient? gradient;
+  final Color? cardColor; // color de la tarjeta
+  final Color? iconColor; // color del icono
+  final Color? textColor; // color del texto
   final VoidCallback onTap;
 
   const DashboardCard({
@@ -16,6 +17,7 @@ class DashboardCard extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.cardColor,
+    this.gradient,
     this.iconColor,
     this.textColor,
   });
@@ -30,7 +32,10 @@ class DashboardCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: cardColor ?? colorScheme.surface, // usa el prop si viene
+          gradient: gradient,
+          color: gradient == null
+              ? (cardColor ?? colorScheme.surface)
+              : null, 
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: (iconColor ?? colorScheme.primary).withOpacity(0.15),
@@ -73,10 +78,10 @@ class DashboardCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: textColor ?? colorScheme.onSurface.withOpacity(0.7)),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color:
+                          textColor ?? colorScheme.onSurface.withOpacity(0.7),
+                    ),
                   ),
                 ],
               ),

@@ -4,7 +4,6 @@ import '../widgets/auth_text_field.dart';
 import '../widgets/auth_button.dart';
 import 'package:sigetu/features/student_dashboard/presentation/student_dashboard_routes.dart';
 
-
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
 
