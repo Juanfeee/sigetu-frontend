@@ -8,7 +8,6 @@ import 'package:sigetu/core/realtime/appointments_realtime_service.dart';
 import 'package:sigetu/core/utils/app_date_formatter.dart';
 import 'package:sigetu/core/utils/responsive.dart';
 import 'package:sigetu/core/widgets/app_toast.dart';
-import 'package:sigetu/features/headquarters/domain/appointment_request.dart';
 import 'package:sigetu/features/student_dashboard/data/student_turns_api.dart';
 import 'package:sigetu/features/student_dashboard/domain/student_turn.dart';
 import 'package:sigetu/features/student_dashboard/presentation/screens/reprogram_cita_screen.dart';
@@ -203,16 +202,16 @@ class _TurnosScreenState extends State<TurnosScreen> {
   Color _statusColor(String status, ColorScheme colorScheme) {
     switch (status.toLowerCase()) {
       case AppointmentStatuses.pending:
-        return Colors.orange;
+        return colorScheme.tertiary;
       case AppointmentStatuses.calling:
         return colorScheme.primary;
       case AppointmentStatuses.inAttention:
         return colorScheme.secondary;
       case AppointmentStatuses.attended:
       case AppointmentStatuses.finished:
-        return Colors.green;
+        return colorScheme.secondary;
       case AppointmentStatuses.absent:
-        return Colors.brown;
+        return colorScheme.outline;
       case AppointmentStatuses.canceled:
         return colorScheme.error;
       default:
@@ -265,7 +264,7 @@ class _TurnosScreenState extends State<TurnosScreen> {
                   children: [
                     Expanded(
                       child: Material(
-                        color: Colors.transparent,
+                        color: scheme.surface.withValues(alpha: 0),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(999),
                           onTap: () => _changeViewMode(false),
@@ -286,7 +285,7 @@ class _TurnosScreenState extends State<TurnosScreen> {
                     ),
                     Expanded(
                       child: Material(
-                        color: Colors.transparent,
+                        color: scheme.surface.withValues(alpha: 0),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(999),
                           onTap: () => _changeViewMode(true),

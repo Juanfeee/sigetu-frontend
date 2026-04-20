@@ -4,8 +4,7 @@ import 'package:sigetu/core/auth/auth_session.dart';
 import 'package:sigetu/core/utils/device_id.dart';
 import 'package:sigetu/core/utils/responsive.dart';
 import 'package:sigetu/core/widgets/app_toast.dart';
-import 'package:sigetu/features/administrative/presentation/administrative_routes.dart';
-import 'package:sigetu/features/admisiones_mercadeo/presentation/admisiones_mercadeo_routes.dart';
+import 'package:sigetu/features/admin/presentation/admin_routes.dart';
 import 'package:sigetu/features/auth/data/auth_api.dart';
 import 'package:sigetu/features/auth/presentation/auth_routes.dart';
 import 'package:sigetu/features/secretary/presentation/secretary_routes.dart';
@@ -125,19 +124,8 @@ class _LoginScreenState extends State<LoginScreen>
       FcmTokenSync.listenTokenRefresh();
 
       final role = _extractRoleFromToken(loginResponse.accessToken);
-      final isSecretaryRole =
-          role == 'secretaria' ||
-          role == 'secretary' ||
-          role == 'role_secretaria';
-      final isAdministrativeRole =
-          role == 'administrativo' ||
-          role == 'administrativa' ||
-          role == 'admin' ||
-          role == 'role_administrativo';
-      final isAdmissionsMarketingRole =
-          role == 'admisiones_mercadeo' ||
-          role == 'admisionesmercadeo' ||
-          role == 'role_admisiones_mercadeo';
+      final isStaffRole = role == 'staff';
+      final isAdminRole = role == 'admin';
 
       await _showRequestMessage(
         loginResponse.message ?? 'Inicio de sesión exitoso',
@@ -145,12 +133,10 @@ class _LoginScreenState extends State<LoginScreen>
       );
       Navigator.pushReplacementNamed(
         context,
-        isSecretaryRole
+        isStaffRole
             ? SecretaryRoutes.home
-            : isAdministrativeRole
-            ? AdministrativeRoutes.home
-            : isAdmissionsMarketingRole
-            ? AdmisionesMercadeoRoutes.home
+        : isAdminRole
+        ? AdminRoutes.home
             : StudentDashboardRoutes.dashboard,
       );
     } catch (error) {
@@ -215,7 +201,13 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           // Esferas decorativas
-          CustomPaint(painter: BubblesPainter(primaryColor: scheme.primary)),
+          CustomPaint(
+            painter: BubblesPainter(
+              primaryColor: scheme.primary,
+              shadowColor: scheme.shadow,
+              highlightColor: scheme.onPrimary,
+            ),
+          ),
           // Contenido
           SafeArea(
             child: Center(
@@ -263,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.25),
+                                  color: scheme.shadow.withValues(alpha: 0.25),
                                   blurRadius: 32,
                                   offset: const Offset(0, 12),
                                 ),
@@ -464,7 +456,13 @@ class _LoginScreenState extends State<LoginScreen>
 
 class BubblesPainter extends CustomPainter {
   final Color primaryColor;
-  const BubblesPainter({required this.primaryColor});
+  final Color shadowColor;
+  final Color highlightColor;
+  const BubblesPainter({
+    required this.primaryColor,
+    required this.shadowColor,
+    required this.highlightColor,
+  });
 
   void _drawSphere(Canvas canvas, Offset center, double radius, Paint base) {
     // Sombra suave
@@ -472,7 +470,7 @@ class BubblesPainter extends CustomPainter {
       center + const Offset(4, 8),
       radius,
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.18)
+        ..color = shadowColor.withValues(alpha: 0.18)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
     );
     // Esfera con gradiente radial
@@ -484,13 +482,13 @@ class BubblesPainter extends CustomPainter {
           center: const Alignment(-0.4, -0.5),
           colors: [
             Color.lerp(
-              Colors.white,
+              highlightColor,
               primaryColor,
               0.25,
             )!.withValues(alpha: 0.85),
             Color.lerp(
               primaryColor,
-              Colors.white,
+              highlightColor,
               0.1,
             )!.withValues(alpha: 0.55),
             primaryColor.withValues(alpha: 0.18),
@@ -503,7 +501,7 @@ class BubblesPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.12)
+        ..color = highlightColor.withValues(alpha: 0.12)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2,
     );
@@ -512,7 +510,7 @@ class BubblesPainter extends CustomPainter {
       center + Offset(-radius * 0.28, -radius * 0.3),
       radius * 0.22,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.35)
+        ..color = highlightColor.withValues(alpha: 0.35)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
     );
   }
@@ -563,6 +561,7 @@ class BubblesPainter extends CustomPainter {
 class _LogoBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 120,
       height: 120,
@@ -570,7 +569,7 @@ class _LogoBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0D2B6E).withValues(alpha: 0.55),
+            color: scheme.shadow.withValues(alpha: 0.55),
             blurRadius: 40,
             spreadRadius: 4,
             offset: const Offset(0, 10),

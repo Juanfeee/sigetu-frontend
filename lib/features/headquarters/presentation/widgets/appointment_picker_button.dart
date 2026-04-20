@@ -20,7 +20,7 @@ class AppointmentPickerButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: Material(
-        color: Colors.transparent,
+        color: colorScheme.surface.withValues(alpha: 0),
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(14),

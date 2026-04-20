@@ -191,6 +191,7 @@ class StudentTurnCard extends StatelessWidget {
                       label: 'Reprogramar',
                       icon: isUpdating ? null : Icons.sync_rounded,
                       color: scheme.primary,
+                      filled: true,
                       onPressed: isUpdating ? null : onReprogram,
                       trailing: isUpdating
                           ? SizedBox(
@@ -210,6 +211,7 @@ class StudentTurnCard extends StatelessWidget {
                       label: 'Cancelar',
                       icon: Icons.close,
                       color: scheme.error,
+                      filled: false,
                       onPressed: isUpdating ? null : onCancel,
                     ),
                   ),
@@ -228,6 +230,7 @@ class _ActionOutlineButton extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onPressed,
+    required this.filled,
     this.icon,
     this.trailing,
   });
@@ -235,23 +238,60 @@ class _ActionOutlineButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback? onPressed;
+  final bool filled;
   final IconData? icon;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       enabled: onPressed != null,
       label: label,
       child: SizedBox(
         height: 48,
-        child: OutlinedButton(
+        child: filled
+            ? ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: scheme.onPrimary,
+            disabledBackgroundColor: color.withValues(alpha: 0.45),
+            disabledForegroundColor: scheme.onPrimary.withValues(alpha: 0.8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            elevation: 0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: scheme.onPrimary),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onPrimary,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 6), trailing!],
+            ],
+          ),
+        )
+            : OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
             side: BorderSide(color: color.withValues(alpha: 0.4), width: 1.2),
             foregroundColor: color,
-            backgroundColor: Colors.transparent,
+            backgroundColor: scheme.surface.withValues(alpha: 0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -261,14 +301,17 @@ class _ActionOutlineButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 18),
+                Icon(icon, size: 18, color: color),
                 const SizedBox(width: 6),
               ],
               Flexible(
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
                 ),
               ),
               if (trailing != null) ...[const SizedBox(width: 6), trailing!],

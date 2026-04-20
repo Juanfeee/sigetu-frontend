@@ -5,6 +5,8 @@ import 'package:sigetu/core/widgets/app_toast.dart';
 import 'package:sigetu/features/auth/data/auth_api.dart';
 import 'package:sigetu/features/auth/domain/user_register.dart';
 import 'package:sigetu/features/auth/presentation/auth_routes.dart';
+import 'package:sigetu/features/shared/data/academic_programs_api.dart';
+import 'package:sigetu/features/shared/domain/academic_program.dart';
 import 'login_screen.dart' show BubblesPainter;
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_button.dart';
@@ -31,14 +33,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordFocusNode = FocusNode();
   final _confirmPasswordFocusNode = FocusNode();
   final _formKey = GlobalKey<FormState>();
+  final _authApi = AuthApi();
+  final _programsApi = AcademicProgramsApi();
   bool _isLoading = false;
-  String? _academicProgram;
+  bool _isLoadingAcademicPrograms = true;
+  String? _academicProgramsError;
+  List<AcademicProgram> _academicPrograms = [];
+  int? _academicProgramId;
 
-  static const List<Map<String, String>> _academicPrograms = [
-    {'label': 'Ingenierías', 'value': 'ingenierias'},
-    {'label': 'Derecho', 'value': 'derecho'},
-    {'label': 'Finanzas', 'value': 'finanzas'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadAcademicPrograms();
+  }
 
   @override
   void dispose() {
@@ -61,6 +68,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return message;
   }
 
+  Future<void> _loadAcademicPrograms() async {
+    setState(() {
+      _isLoadingAcademicPrograms = true;
+      _academicProgramsError = null;
+    });
+
+    try {
+      final programs = await _programsApi.fetchPrograms(onlyActive: true);
+      if (!mounted) return;
+      setState(() {
+        _academicPrograms = programs;
+        _academicProgramId = null;
+        _isLoadingAcademicPrograms = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _academicProgramsError = _mapErrorMessage(error);
+        _academicPrograms = [];
+        _academicProgramId = null;
+        _isLoadingAcademicPrograms = false;
+      });
+    }
+  }
+
   Future<void> _showRequestMessage(String message, {required bool isError}) {
     if (isError) {
       return AppToast.showError(context, message: message);
@@ -79,13 +111,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       fullName: _nameController.text.trim(),
       password: _passwordController.text,
-      academicProgram: _academicProgram!,
+      academicProgramId: _academicProgramId!,
     );
 
     try {
       // Si el usuario venía de modo invitado, transferir sus citas al nuevo usuario
       final guestDeviceId = AuthSession.isGuest ? AuthSession.deviceId : null;
-      final successMessage = await AuthApi().register(
+      final successMessage = await _authApi.register(
         user,
         deviceId: guestDeviceId,
       );
@@ -130,7 +162,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
-          CustomPaint(painter: BubblesPainter(primaryColor: scheme.primary)),
+          CustomPaint(
+            painter: BubblesPainter(
+              primaryColor: scheme.primary,
+              shadowColor: scheme.shadow,
+              highlightColor: scheme.onPrimary,
+            ),
+          ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -172,7 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
+                              color: scheme.shadow.withValues(alpha: 0.25),
                               blurRadius: 32,
                               offset: const Offset(0, 12),
                             ),
@@ -238,33 +276,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const SizedBox(height: 16),
                                 Semantics(
                                   label: 'Programa académico',
-                                  child: DropdownButtonFormField<String>(
-                                    value: _academicProgram,
-                                    decoration: const InputDecoration(
+                                  child: DropdownButtonFormField<int>(
+                                    initialValue: _academicProgramId,
+                                    decoration: InputDecoration(
                                       labelText: 'Programa académico',
-                                      prefixIcon: Icon(Icons.school_outlined),
+                                      prefixIcon: const Icon(
+                                        Icons.school_outlined,
+                                      ),
+                                      suffixIcon: _isLoadingAcademicPrograms
+                                          ? const Padding(
+                                              padding: EdgeInsets.all(12),
+                                              child: SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              ),
+                                            )
+                                          : _academicProgramsError != null
+                                          ? IconButton(
+                                              tooltip: 'Reintentar',
+                                              icon: const Icon(Icons.refresh),
+                                              onPressed: _loadAcademicPrograms,
+                                            )
+                                          : null,
                                     ),
                                     items: _academicPrograms
                                         .map(
-                                          (p) => DropdownMenuItem<String>(
-                                            value: p['value'],
-                                            child: Text(p['label']!),
+                                          (program) => DropdownMenuItem<int>(
+                                            value: program.id,
+                                            child: Text(program.nombre),
                                           ),
                                         )
                                         .toList(),
-                                    onChanged: _isLoading
+                                    onChanged: _isLoading || _isLoadingAcademicPrograms
                                         ? null
                                         : (value) => setState(
-                                            () => _academicProgram = value,
+                                            () => _academicProgramId = value,
                                           ),
                                     validator: (value) {
-                                      if (value == null || value.isEmpty) {
+                                      if (_isLoadingAcademicPrograms) {
+                                        return 'Cargando programas académicos';
+                                      }
+                                      if (value == null) {
                                         return 'Seleccione su programa académico';
                                       }
                                       return null;
                                     },
                                   ),
                                 ),
+                                if (_academicProgramsError != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _academicProgramsError!,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: scheme.error,
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 16),
                                 AuthTextField(
                                   label: 'Contraseña',

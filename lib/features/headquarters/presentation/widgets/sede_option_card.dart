@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 class SedeOptionCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
   final VoidCallback onTap;
 
   const SedeOptionCard({
     super.key,
     required this.title,
     required this.subtitle,
-    required this.icon,
     required this.onTap,
+    this.icon,
   });
 
   @override
@@ -26,14 +26,14 @@ class SedeOptionCard extends StatelessWidget {
         border: Border.all(color: colorScheme.primary.withOpacity(0.10)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: colorScheme.surface.withValues(alpha: 0),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: onTap,
@@ -42,15 +42,17 @@ class SedeOptionCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(14),
+                if (icon != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(icon, color: colorScheme.primary, size: 24),
                   ),
-                  child: Icon(icon, color: colorScheme.primary, size: 24),
-                ),
-                const SizedBox(width: 14),
+                  const SizedBox(width: 14),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

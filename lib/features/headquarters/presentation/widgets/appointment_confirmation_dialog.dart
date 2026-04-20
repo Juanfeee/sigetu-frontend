@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sigetu/core/theme/appointment_context_palette.dart';
 
 class AppointmentConfirmationDialog extends StatelessWidget {
   const AppointmentConfirmationDialog({
@@ -42,8 +41,6 @@ class AppointmentConfirmationDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final palette = Theme.of(context).extension<AppointmentContextPalette>() ??
-        AppointmentContextPalette.defaults;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -69,25 +66,16 @@ class AppointmentConfirmationDialog extends StatelessWidget {
             _ConfirmationInfoTile(
               label: 'Sede',
               value: headquarter,
-              icon: Icons.location_on_outlined,
-              iconColor: palette.iconColorFor(0),
-              iconBackground: palette.iconBackgroundFor(0),
             ),
             const SizedBox(height: 10),
             _ConfirmationInfoTile(
               label: 'Área',
               value: area,
-              icon: Icons.work_outline_rounded,
-              iconColor: palette.iconColorFor(1),
-              iconBackground: palette.iconBackgroundFor(1),
             ),
             const SizedBox(height: 10),
             _ConfirmationInfoTile(
               label: 'Tipo de atención',
               value: attentionType,
-              icon: Icons.receipt_long_outlined,
-              iconColor: palette.iconColorFor(2),
-              iconBackground: palette.iconBackgroundFor(2),
             ),
             const SizedBox(height: 12),
             Divider(color: scheme.outline.withValues(alpha: 0.2), height: 1),
@@ -95,17 +83,11 @@ class AppointmentConfirmationDialog extends StatelessWidget {
             _ConfirmationInfoTile(
               label: 'Fecha',
               value: formattedDate,
-              icon: Icons.calendar_today_outlined,
-              iconColor: palette.iconColorFor(3),
-              iconBackground: palette.iconBackgroundFor(3),
             ),
             const SizedBox(height: 10),
             _ConfirmationInfoTile(
               label: 'Hora',
               value: formattedTime,
-              icon: Icons.access_time_rounded,
-              iconColor: scheme.secondary,
-              iconBackground: scheme.secondary.withValues(alpha: 0.16),
             ),
             const SizedBox(height: 18),
             Row(
@@ -139,32 +121,16 @@ class _ConfirmationInfoTile extends StatelessWidget {
   const _ConfirmationInfoTile({
     required this.label,
     required this.value,
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
   });
 
   final String label;
   final String value;
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: iconBackground,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: iconColor, size: 24),
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

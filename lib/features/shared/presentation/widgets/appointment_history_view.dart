@@ -114,7 +114,7 @@ class _AppointmentHistoryViewState extends State<AppointmentHistoryView>
     final scheme = Theme.of(context).colorScheme;
 
     if (normalized == AppointmentStatuses.attended) {
-      return Colors.green.shade700;
+      return scheme.secondary;
     }
 
     if (normalized == AppointmentStatuses.absent ||

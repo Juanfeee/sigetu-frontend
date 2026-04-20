@@ -20,7 +20,7 @@ class FcmTokenSync {
     );
 
     print(
-      '[FCM Token Sync] Token obtenido: ${token != null ? token.substring(0, 20) + "..." : "null"}',
+      '[FCM Token Sync] Token obtenido: ${token != null ? "${token.substring(0, 20)}..." : "null"}',
     );
     print('[FCM Token Sync] Platform: ${kIsWeb ? "web" : "mobile"}');
 

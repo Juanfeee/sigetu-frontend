@@ -57,6 +57,18 @@ class AuthHttp {
     );
   }
 
+  static Future<http.Response> delete(Uri url, {Object? body}) {
+    return _sendWithAutoRefresh(
+      (token) => _httpRequest(
+        (client) => client.delete(
+          url,
+          headers: authorizedJsonHeaders(accessToken: token),
+          body: body,
+        ),
+      ),
+    );
+  }
+
   static Future<http.Response> _httpRequest(
     Future<http.Response> Function(http.Client client) requestFn,
   ) {

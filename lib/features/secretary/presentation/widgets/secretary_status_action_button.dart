@@ -23,15 +23,18 @@ class SecretaryStatusActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final errorColor = Theme.of(context).colorScheme.error;
+    final scheme = Theme.of(context).colorScheme;
+    final errorColor = scheme.error;
 
     final isDanger = variant == SecretaryStatusActionVariant.dangerOutlined;
 
-    final foregroundColor = isDanger ? errorColor : Colors.white;
-    final backgroundColor = isDanger ? Colors.transparent : Colors.green;
+    final foregroundColor = isDanger ? errorColor : scheme.onPrimary;
+    final backgroundColor = isDanger
+      ? scheme.surface.withValues(alpha: 0)
+      : scheme.secondary;
     final side = isDanger
         ? BorderSide(color: errorColor)
-        : const BorderSide(color: Colors.transparent);
+      : BorderSide(color: scheme.surface.withValues(alpha: 0));
 
     return SizedBox(
       height: 46,

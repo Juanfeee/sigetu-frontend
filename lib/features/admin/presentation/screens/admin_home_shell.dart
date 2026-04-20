@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:sigetu/core/utils/responsive.dart';
-import 'package:sigetu/features/headquarters/domain/appointment_contexts.dart';
-import 'package:sigetu/features/secretary/presentation/screens/secretary_screen.dart';
+import 'package:sigetu/features/admin/presentation/screens/admin_programs_screen.dart';
+import 'package:sigetu/features/admin/presentation/screens/admin_sedes_screen.dart';
+import 'package:sigetu/features/admin/presentation/screens/admin_screen.dart';
+import 'package:sigetu/features/admin/presentation/screens/admin_users_screen.dart';
 import 'package:sigetu/features/student_dashboard/presentation/screens/perfil_screen.dart';
-import '../screens/admisiones_mercadeo_history_screen.dart';
 
-class AdmisionesMercadeoHomeShell extends StatefulWidget {
-  const AdmisionesMercadeoHomeShell({super.key});
+class AdminHomeShell extends StatefulWidget {
+  const AdminHomeShell({super.key});
 
   @override
-  State<AdmisionesMercadeoHomeShell> createState() =>
-      _AdmisionesMercadeoHomeShellState();
+  State<AdminHomeShell> createState() => _AdminHomeShellState();
 }
 
-class _AdmisionesMercadeoHomeShellState
-    extends State<AdmisionesMercadeoHomeShell> {
+class _AdminHomeShellState extends State<AdminHomeShell> {
   int _currentIndex = 0;
 
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
     GlobalKey<NavigatorState>(),
     GlobalKey<NavigatorState>(),
     GlobalKey<NavigatorState>(),
@@ -46,15 +47,11 @@ class _AdmisionesMercadeoHomeShellState
     final pages = IndexedStack(
       index: _currentIndex,
       children: [
-        _buildNavigator(
-          0,
-          const SecretaryScreen(
-            sede: AppointmentContexts.sedeAdmisionesMercadeo,
-            appBarTitle: 'Admisiones y mercadeo - Citas',
-          ),
-        ),
-        _buildNavigator(1, const AdmisionesMercadeoHistoryScreen()),
-        _buildNavigator(2, const PerfilScreen()),
+        _buildNavigator(0, const AdminScreen()),
+        _buildNavigator(1, const AdminProgramsScreen()),
+        _buildNavigator(2, const AdminSedesScreen()),
+        _buildNavigator(3, const AdminUsersScreen()),
+        _buildNavigator(4, const PerfilScreen()),
       ],
     );
 
@@ -71,14 +68,24 @@ class _AdmisionesMercadeoHomeShellState
                   : NavigationRailLabelType.all,
               destinations: const [
                 NavigationRailDestination(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  selectedIcon: Icon(Icons.calendar_month_rounded),
-                  label: Text('Citas'),
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
+                  label: Text('Inicio'),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.history),
-                  selectedIcon: Icon(Icons.history_rounded),
-                  label: Text('Historial'),
+                  icon: Icon(Icons.school_outlined),
+                  selectedIcon: Icon(Icons.school_rounded),
+                  label: Text('Programas'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.location_city_outlined),
+                  selectedIcon: Icon(Icons.location_city_rounded),
+                  label: Text('Sedes'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.people_outline_rounded),
+                  selectedIcon: Icon(Icons.people_rounded),
+                  label: Text('Usuarios'),
                 ),
                 NavigationRailDestination(
                   icon: Icon(Icons.person_outline_rounded),
@@ -102,16 +109,28 @@ class _AdmisionesMercadeoHomeShellState
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month_rounded),
-            label: 'Citas',
-            tooltip: 'Lista de citas',
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded),
+            label: 'Inicio',
+            tooltip: 'Panel principal',
           ),
           NavigationDestination(
-            icon: Icon(Icons.history),
-            selectedIcon: Icon(Icons.history_rounded),
-            label: 'Historial',
-            tooltip: 'Historial de citas',
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: 'Programas',
+            tooltip: 'Programas académicos',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.location_city_outlined),
+            selectedIcon: Icon(Icons.location_city_rounded),
+            label: 'Sedes',
+            tooltip: 'Gestión de sedes',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline_rounded),
+            selectedIcon: Icon(Icons.people_rounded),
+            label: 'Usuarios',
+            tooltip: 'Gestión de usuarios',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),

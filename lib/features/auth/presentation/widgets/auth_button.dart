@@ -14,6 +14,7 @@ class AuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       enabled: !isLoading,
@@ -26,13 +27,13 @@ class AuthButton extends StatelessWidget {
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 180),
             child: isLoading
-                ? const SizedBox(
+              ? SizedBox(
                     key: ValueKey('loading'),
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: scheme.onPrimary,
                     ),
                   )
                 : Text(

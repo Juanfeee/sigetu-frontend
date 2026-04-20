@@ -2,13 +2,68 @@ import 'package:flutter/material.dart';
 import 'package:sigetu/core/auth/auth_session.dart';
 import 'package:sigetu/core/utils/responsive.dart';
 import 'package:sigetu/core/widgets/section_header.dart';
-import 'package:sigetu/features/headquarters/presentation/screens/admisiones_mercadeo_screen.dart';
+import 'package:sigetu/features/headquarters/data/sedes_api.dart';
+import 'package:sigetu/features/headquarters/domain/sede.dart';
 import 'package:sigetu/features/headquarters/presentation/screens/asistencia_estudiantil_screen.dart';
-import 'package:sigetu/features/headquarters/presentation/screens/sede_administrativa_screen.dart';
 import 'package:sigetu/features/student_dashboard/presentation/widgets/dashboard_card.dart';
 
-class SeleccionarSedeScreen extends StatelessWidget {
+class SeleccionarSedeScreen extends StatefulWidget {
   const SeleccionarSedeScreen({super.key});
+
+  @override
+  State<SeleccionarSedeScreen> createState() => _SeleccionarSedeScreenState();
+}
+
+class _SeleccionarSedeScreenState extends State<SeleccionarSedeScreen> {
+  final _sedesApi = SedesApi();
+
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<Sede> _sedes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSedes();
+  }
+
+  Future<void> _loadSedes() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final sedes = await _sedesApi.fetchSedesActivas();
+      if (!mounted) return;
+      setState(() => _sedes = sedes);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  bool _guestCanAccess(Sede sede) => sede.esPublica;
+
+  Future<void> _openSede(Sede sede) async {
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AsistenciaEstudiantilScreen(
+          sedeId: sede.id,
+          sedeCodigo: sede.codigo,
+          sedeNombre: sede.nombre,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,92 +71,88 @@ class SeleccionarSedeScreen extends StatelessWidget {
     final isWide = !Responsive.isMobile(context);
     final isGuest = AuthSession.isGuest;
 
-    Widget cardAsistencia = isGuest
-        ? _LockedCard(
-            title: 'Asistencia Estudiantil',
-            subtitle: 'Disponible solo para usuarios registrados',
-            icon: Icons.support_agent_outlined,
-          )
-        : DashboardCard(
-            title: 'Asistencia Estudiantil',
-            subtitle: 'Orientación y apoyo académico',
-            imagePath: 'assets/images/asistencia_estudiantil.png',
-            icon: Icons.support_agent_outlined,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AsistenciaEstudiantilScreen(),
-                ),
-              );
-            },
-          );
-
-    Widget cardAdministrativa = isGuest
-        ? _LockedCard(
-            title: 'Sede Administrativa',
-            subtitle: 'Disponible solo para usuarios registrados',
-            icon: Icons.apartment_outlined,
-          )
-        : DashboardCard(
-            title: 'Sede Administrativa',
-            subtitle: 'Trámites y documentación',
-            imagePath: 'assets/images/asistencia_estudiantil.png',
-            icon: Icons.apartment_outlined,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SedeAdministrativaScreen(),
-                ),
-              );
-            },
-          );
-
-    Widget cardAdmisiones = DashboardCard(
-      title: 'Admisiones y mercadeo',
-      subtitle: 'Procesos de inscripción y matrícula',
-      imagePath: 'assets/images/asistencia_estudiantil.png',
-      icon: Icons.how_to_reg_outlined,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AdmisionesMercadeoScreen()),
+    List<Widget> cards = _sedes.map((sede) {
+      final locked = isGuest && !_guestCanAccess(sede);
+      if (locked) {
+        return _LockedCard(
+          title: sede.nombre,
+          subtitle: 'Disponible solo para usuarios registrados',
         );
-      },
-    );
+      }
+
+      return DashboardCard(
+        title: sede.nombre,
+        subtitle: (sede.descripcion?.trim().isNotEmpty ?? false)
+            ? sede.descripcion!
+            : (sede.ubicacion?.trim().isNotEmpty ?? false)
+            ? sede.ubicacion!
+            : 'Selecciona para continuar',
+        imagePath: 'assets/images/asistencia_estudiantil.png',
+        onTap: () => _openSede(sede),
+      );
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Seleccionar sede')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 20),
-            children: [
-              const SectionHeader(
-                title: 'Selecciona la sede',
-                subtitle: 'Elige la ubicación donde deseas solicitar tu turno',
-              ),
-              if (isWide)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: cardAsistencia),
-                    const SizedBox(width: 16),
-                    Expanded(child: cardAdministrativa),
-                    const SizedBox(width: 16),
-                    Expanded(child: cardAdmisiones),
+      body: RefreshIndicator(
+        onRefresh: _loadSedes,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: ListView(
+              padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 20),
+              children: [
+                const SectionHeader(
+                  title: 'Selecciona la sede',
+                  subtitle: 'Elige la ubicación donde deseas solicitar tu turno',
+                ),
+                if (_isLoading) ...[
+                  const SizedBox(height: 60),
+                  const Center(child: CircularProgressIndicator()),
+                ] else if (_errorMessage != null) ...[
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _loadSedes,
+                    child: const Text('Reintentar'),
+                  ),
+                ] else if (cards.isEmpty) ...[
+                  const SizedBox(height: 40),
+                  const Text('No hay sedes activas disponibles.'),
+                ] else if (isWide) ...[
+                  for (int i = 0; i < cards.length; i += 3)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: cards[i]),
+                          if (i + 1 < cards.length) ...[
+                            const SizedBox(width: 16),
+                            Expanded(child: cards[i + 1]),
+                          ] else
+                            const Spacer(),
+                          if (i + 2 < cards.length) ...[
+                            const SizedBox(width: 16),
+                            Expanded(child: cards[i + 2]),
+                          ] else
+                            const Spacer(),
+                        ],
+                      ),
+                    ),
+                ] else ...[
+                  for (final card in cards) ...[
+                    card,
+                    const SizedBox(height: 16),
                   ],
-                )
-              else ...[
-                cardAsistencia,
-                const SizedBox(height: 16),
-                cardAdministrativa,
-                const SizedBox(height: 16),
-                cardAdmisiones,
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -114,12 +165,10 @@ class _LockedCard extends StatelessWidget {
   const _LockedCard({
     required this.title,
     required this.subtitle,
-    required this.icon,
   });
 
   final String title;
   final String subtitle;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +185,6 @@ class _LockedCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 32, color: scheme.onSurface),
-            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

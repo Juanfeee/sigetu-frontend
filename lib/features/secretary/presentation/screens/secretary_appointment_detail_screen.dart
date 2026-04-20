@@ -82,7 +82,7 @@ class _SecretaryAppointmentDetailScreenState
     final scheme = Theme.of(context).colorScheme;
 
     if (normalized == AppointmentStatuses.attended) {
-      return Colors.green.withOpacity(0.16);
+      return scheme.secondaryContainer.withValues(alpha: 0.5);
     }
 
     if (normalized == AppointmentStatuses.absent ||
@@ -96,7 +96,7 @@ class _SecretaryAppointmentDetailScreenState
 
     if (normalized == AppointmentStatuses.inAttention ||
         normalized == 'atendiendo') {
-      return Colors.green.withOpacity(0.16);
+      return scheme.secondaryContainer.withValues(alpha: 0.5);
     }
 
     return scheme.outline.withOpacity(0.16);
@@ -107,7 +107,7 @@ class _SecretaryAppointmentDetailScreenState
     final scheme = Theme.of(context).colorScheme;
 
     if (normalized == AppointmentStatuses.attended) {
-      return Colors.green.shade800;
+      return scheme.onSecondaryContainer;
     }
 
     if (normalized == AppointmentStatuses.absent ||
@@ -121,7 +121,7 @@ class _SecretaryAppointmentDetailScreenState
 
     if (normalized == AppointmentStatuses.inAttention ||
         normalized == 'atendiendo') {
-      return Colors.green.shade800;
+      return scheme.onSecondaryContainer;
     }
 
     return scheme.onSurface;
@@ -225,19 +225,19 @@ class _SecretaryAppointmentDetailScreenState
               ),
               ElevatedButton.icon(
                 icon: isExtending
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSecondary,
                         ),
                       )
                     : const Icon(Icons.add, size: 18),
                 label: const Text('+15 min'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
                   elevation: 0,
                 ),
                 onPressed: (isExtending || isAttending)
@@ -309,11 +309,12 @@ class _SecretaryAppointmentDetailScreenState
   }
 
   Widget _buildAttentionTimer() {
+    final scheme = Theme.of(context).colorScheme;
     final remaining = _remainingSeconds;
     final minutes = remaining ~/ 60;
     final seconds = remaining % 60;
     final isWarning = remaining < 120;
-    final color = isWarning ? Colors.red.shade700 : Colors.green.shade700;
+    final color = isWarning ? scheme.error : scheme.secondary;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -352,19 +353,21 @@ class _SecretaryAppointmentDetailScreenState
           ElevatedButton.icon(
             onPressed: _isExtending ? null : _extendTime,
             icon: _isExtending
-                ? const SizedBox(
+                ? SizedBox(
                     width: 14,
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: isWarning ? scheme.onError : scheme.onSecondary,
                     ),
                   )
                 : const Icon(Icons.add, size: 18),
             label: const Text('+15 min'),
             style: ElevatedButton.styleFrom(
               backgroundColor: color,
-              foregroundColor: Colors.white,
+              foregroundColor: isWarning
+                  ? scheme.onError
+                  : scheme.onSecondary,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),

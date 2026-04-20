@@ -3,6 +3,7 @@ import 'screens/student_home_shell.dart';
 import '../../headquarters/presentation/screens/seleccionar_sede_screen.dart';
 class StudentDashboardRoutes {
   static const dashboard = '/student-dashboard';
+  static const turnos = '/student-turnos';
   static const seleccionarSede = '/seleccionar-sede';
 
   static Map<String, WidgetBuilder> routes = {
@@ -13,6 +14,7 @@ class StudentDashboardRoutes {
           : 0;
       return StudentHomeShell(initialIndex: initialIndex);
     },
+    turnos: (_) => const StudentHomeShell(initialIndex: 1),
     seleccionarSede: (_) => const SeleccionarSedeScreen(),
   };
 }

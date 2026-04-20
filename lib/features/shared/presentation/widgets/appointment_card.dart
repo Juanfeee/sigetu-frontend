@@ -278,7 +278,7 @@ class AppointmentCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     if (normalized == AppointmentStatuses.attended) {
-      return Colors.green;
+      return scheme.secondary;
     }
 
     if (normalized == AppointmentStatuses.absent ||
@@ -292,7 +292,7 @@ class AppointmentCard extends StatelessWidget {
 
     if (normalized == AppointmentStatuses.inAttention ||
         normalized == 'atendiendo') {
-      return Colors.green;
+      return scheme.secondary;
     }
 
     return scheme.outline;

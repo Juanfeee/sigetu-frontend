@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:sigetu/core/auth/auth_http.dart';
 import 'package:sigetu/core/auth/auth_session.dart';
 import 'package:sigetu/core/constants/api_constants.dart';
+import 'package:sigetu/core/utils/appointment_sorting.dart';
 import 'package:sigetu/features/headquarters/domain/appointment_request.dart';
 import 'package:sigetu/features/student_dashboard/domain/student_turn.dart';
 
@@ -66,16 +67,20 @@ class StudentTurnsApi {
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
       if (decoded is List) {
-        return decoded
+        return sortByScheduledAt(
+          decoded
             .whereType<Map<String, dynamic>>()
-            .map(StudentTurn.fromJson)
-            .toList();
+            .map(StudentTurn.fromJson),
+          (turn) => turn.scheduledAt,
+        );
       }
       if (decoded is Map<String, dynamic> && decoded['items'] is List) {
-        return (decoded['items'] as List)
+        return sortByScheduledAt(
+          (decoded['items'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(StudentTurn.fromJson)
-            .toList();
+            .map(StudentTurn.fromJson),
+          (turn) => turn.scheduledAt,
+        );
       }
       return [];
     }
@@ -103,16 +108,20 @@ class StudentTurnsApi {
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
       if (decoded is List) {
-        return decoded
+        return sortByScheduledAt(
+          decoded
             .whereType<Map<String, dynamic>>()
-            .map(StudentTurn.fromJson)
-            .toList();
+            .map(StudentTurn.fromJson),
+          (turn) => turn.scheduledAt,
+        );
       }
       if (decoded is Map<String, dynamic> && decoded['items'] is List) {
-        return (decoded['items'] as List)
+        return sortByScheduledAt(
+          (decoded['items'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(StudentTurn.fromJson)
-            .toList();
+            .map(StudentTurn.fromJson),
+          (turn) => turn.scheduledAt,
+        );
       }
       return [];
     }
@@ -137,17 +146,21 @@ class StudentTurnsApi {
       final decoded = jsonDecode(response.body);
 
       if (decoded is List) {
-        return decoded
+        return sortByScheduledAt(
+          decoded
             .whereType<Map<String, dynamic>>()
-            .map(StudentTurn.fromJson)
-            .toList();
+            .map(StudentTurn.fromJson),
+          (turn) => turn.scheduledAt,
+        );
       }
 
       if (decoded is Map<String, dynamic> && decoded['items'] is List) {
-        return (decoded['items'] as List)
+        return sortByScheduledAt(
+          (decoded['items'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(StudentTurn.fromJson)
-            .toList();
+            .map(StudentTurn.fromJson),
+          (turn) => turn.scheduledAt,
+        );
       }
 
       return [];

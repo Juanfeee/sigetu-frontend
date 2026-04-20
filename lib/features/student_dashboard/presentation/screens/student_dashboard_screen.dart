@@ -51,6 +51,7 @@ class StudentDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildSolicitarTurnoCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       label: 'Solicitar turno: Agenda una nueva cita',
@@ -59,8 +60,8 @@ class StudentDashboardScreen extends StatelessWidget {
         subtitle: 'Agenda una nueva cita',
         icon: Icons.calendar_month_outlined,
         gradient: AppGradients.primary(context),
-        textColor: Colors.white,
-        iconColor: Colors.white,
+        textColor: scheme.onPrimary,
+        iconColor: scheme.onPrimary,
         onTap: () {
           Navigator.push(
             context,

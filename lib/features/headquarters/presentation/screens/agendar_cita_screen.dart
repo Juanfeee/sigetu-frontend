@@ -7,7 +7,8 @@ import 'package:sigetu/core/utils/responsive.dart';
 import 'package:sigetu/core/utils/app_date_formatter.dart';
 import 'package:sigetu/core/widgets/app_toast.dart';
 import 'package:sigetu/features/headquarters/data/appointment_api.dart';
-import 'package:sigetu/features/headquarters/domain/appointment_contexts.dart';
+import 'package:sigetu/features/headquarters/data/categoria_contextos_api.dart';
+import 'package:sigetu/features/headquarters/domain/categoria_contexto.dart';
 import 'package:sigetu/features/headquarters/domain/appointment_request.dart';
 import 'package:sigetu/features/headquarters/presentation/widgets/appointment_calendar_panel.dart';
 import 'package:sigetu/features/headquarters/presentation/widgets/appointment_category_context_card.dart';
@@ -16,9 +17,18 @@ import 'package:sigetu/features/headquarters/presentation/widgets/appointment_ti
 import 'package:sigetu/features/student_dashboard/presentation/student_dashboard_routes.dart';
 
 class AgendarCitaScreen extends StatefulWidget {
-  const AgendarCitaScreen({super.key, required this.categoria});
+  const AgendarCitaScreen({
+    super.key,
+    required this.categoriaId,
+    required this.categoria,
+    required this.sedeCodigo,
+    this.categoriaNombre,
+  });
 
+  final int categoriaId;
   final String categoria;
+  final String sedeCodigo;
+  final String? categoriaNombre;
 
   @override
   State<AgendarCitaScreen> createState() => _AgendarCitaScreenState();
@@ -27,6 +37,7 @@ class AgendarCitaScreen extends StatefulWidget {
 class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
   final _formKey = GlobalKey<FormState>();
   final _appointmentApi = AppointmentApi();
+  final _contextosApi = CategoriaContextosApi();
   final _realtime = AppointmentsRealtimeService();
   StreamSubscription<void>? _realtimeSubscription;
   static const int _slotIntervalMinutes = 15;
@@ -40,7 +51,10 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
   String? _contextoSeleccionado;
   bool _isSubmitting = false;
   bool _isLoadingSlots = false;
+  bool _isLoadingContextos = true;
   List<TimeOfDay> _horariosOcupados = [];
+  List<CategoriaContexto> _contextos = [];
+  String? _contextosError;
   int _currentStep = 1;
   late DateTime _displayedMonth;
 
@@ -49,6 +63,7 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
     super.initState();
     final now = DateTime.now();
     _displayedMonth = DateTime(now.year, now.month);
+    _loadContextos();
     _realtime.connect();
     _realtimeSubscription = _realtime.updates.listen((_) {
       final fecha = _fechaSeleccionada;
@@ -65,7 +80,52 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
   }
 
   List<String> get _contextosDisponibles =>
-      AppointmentContexts.forCategory(widget.categoria);
+      _contextos.map((contexto) => contexto.nombre).toList();
+
+  Map<String, String> get _contextosDescripcionPorNombre {
+    final descriptions = <String, String>{};
+    for (final contexto in _contextos) {
+      final descripcion = contexto.descripcion?.trim();
+      if (descripcion != null && descripcion.isNotEmpty) {
+        descriptions[contexto.nombre] = descripcion;
+      }
+    }
+    return descriptions;
+  }
+
+  Future<void> _loadContextos() async {
+    setState(() {
+      _isLoadingContextos = true;
+      _contextosError = null;
+    });
+
+    try {
+      final contextos = await _contextosApi.fetchContextosActivosPorCategoria(
+        widget.categoriaId,
+      );
+      if (!mounted) return;
+      setState(() => _contextos = contextos);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _contextosError = error.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingContextos = false);
+      }
+    }
+  }
+
+  int? _contextIdFromName(String? contextoNombre) {
+    if (contextoNombre == null) return null;
+    for (final contexto in _contextos) {
+      if (contexto.nombre == contextoNombre) {
+        return contexto.id;
+      }
+    }
+    return null;
+  }
 
   bool _isDateSelectable(DateTime date) {
     final today = DateTime.now();
@@ -106,7 +166,7 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
     try {
       final ocupados = await _appointmentApi.fetchOccupiedSlots(
         date,
-        sede: AppointmentContexts.headquarterForCategory(widget.categoria),
+        sede: widget.sedeCodigo,
       );
       if (!mounted) return;
       setState(() => _horariosOcupados = ocupados);
@@ -154,8 +214,9 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
   }
 
   bool _isSlotEnabled(TimeOfDay slot) {
-    if (_isSubmitting || _fechaSeleccionada == null || _isLoadingSlots)
+    if (_isSubmitting || _fechaSeleccionada == null || _isLoadingSlots) {
       return false;
+    }
     return !_horariosOcupados.any(
       (occupied) =>
           occupied.hour == slot.hour && occupied.minute == slot.minute,
@@ -173,6 +234,22 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
 
   void _goToDateTimeStep() {
     if (_isSubmitting) return;
+
+    if (_isLoadingContextos) return;
+
+    if (_contextosError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_contextosError!)),
+      );
+      return;
+    }
+
+    if (_contextosDisponibles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay contextos disponibles para esta categoría')),
+      );
+      return;
+    }
 
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
@@ -226,8 +303,8 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
 
     final shouldSchedule = await AppointmentConfirmationDialog.show(
       context: context,
-      headquarter: AppointmentContexts.headquarterForCategory(widget.categoria),
-      area: widget.categoria,
+      headquarter: widget.sedeCodigo,
+      area: widget.categoriaNombre ?? widget.categoria,
       attentionType: contextoSeleccionado,
       formattedDate: AppDateFormatter.dateLongEs(fechaSeleccionada),
       formattedTime: AppDateFormatter.time12(horaSeleccionada),
@@ -246,6 +323,7 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
     final fechaSeleccionada = _fechaSeleccionada;
     final horaSeleccionada = _horaSeleccionada;
     final contextoSeleccionado = _contextoSeleccionado;
+    final contextoId = _contextIdFromName(contextoSeleccionado);
 
     if (fechaSeleccionada == null || horaSeleccionada == null) {
       if (!mounted) return;
@@ -263,9 +341,16 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
       return;
     }
 
+    if (contextoId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo resolver el id del contexto seleccionado')),
+      );
+      return;
+    }
+
     final request = AppointmentRequest(
-      category: AppointmentContexts.toApiCategory(widget.categoria),
-      context: AppointmentContexts.toApiContext(contextoSeleccionado),
+      contextoId: contextoId,
       scheduledAt: _buildScheduledAt(fechaSeleccionada, horaSeleccionada),
     );
 
@@ -277,7 +362,7 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
     try {
       final successMessage = await _appointmentApi.createAppointment(
         request,
-        sede: AppointmentContexts.headquarterForCategory(widget.categoria),
+        sede: widget.sedeCodigo,
       );
 
       if (!mounted) return;
@@ -288,10 +373,9 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
       );
 
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        StudentDashboardRoutes.dashboard,
+      Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+        StudentDashboardRoutes.turnos,
         (route) => false,
-        arguments: {'initialIndex': 1},
       );
     } catch (error, stackTrace) {
       debugPrint('Error al agendar cita: $error');
@@ -349,9 +433,30 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 14),
+                    if (_isLoadingContextos) ...[
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 10),
+                    ],
+                    if (_contextosError != null) ...[
+                      Text(
+                        _contextosError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton(
+                          onPressed: _loadContextos,
+                          child: const Text('Reintentar contextos'),
+                        ),
+                      ),
+                    ],
                     AppointmentCategoryContextCard(
                       selectedContext: _contextoSeleccionado,
                       contextOptions: _contextosDisponibles,
+                      contextDescriptions: _contextosDescripcionPorNombre,
                       onContextChanged: (value) =>
                           setState(() => _contextoSeleccionado = value),
                     ),
@@ -359,7 +464,12 @@ class _AgendarCitaScreenState extends State<AgendarCitaScreen> {
                     SizedBox(
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _goToDateTimeStep,
+                        onPressed: (_isSubmitting ||
+                                _isLoadingContextos ||
+                                _contextosError != null ||
+                                _contextosDisponibles.isEmpty)
+                            ? null
+                            : _goToDateTimeStep,
                         child: const Text('Continuar'),
                       ),
                     ),

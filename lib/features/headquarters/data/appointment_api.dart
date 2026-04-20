@@ -122,8 +122,9 @@ class AppointmentApi {
         dtLocal.minute,
         dtLocal.second,
       );
-      if (dt.year != date.year || dt.month != date.month || dt.day != date.day)
+      if (dt.year != date.year || dt.month != date.month || dt.day != date.day) {
         continue;
+      }
 
       // attention_ends_at: enviado por el backend cuando el slot está en_atencion
       DateTime? endsAt;

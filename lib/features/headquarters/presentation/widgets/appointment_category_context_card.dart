@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:sigetu/core/theme/appointment_context_palette.dart';
 
 class AppointmentCategoryContextCard extends StatelessWidget {
   const AppointmentCategoryContextCard({
     super.key,
     this.selectedContext,
     this.contextOptions = const [],
+    this.contextDescriptions = const {},
     this.onContextChanged,
     this.showContextSelector = true,
   });
 
   final String? selectedContext;
   final List<String> contextOptions;
+  final Map<String, String> contextDescriptions;
   final ValueChanged<String?>? onContextChanged;
   final bool showContextSelector;
 
-  static const List<IconData> _icons = [
-    Icons.chat_bubble_outline_rounded,
-    Icons.assignment_turned_in_outlined,
-    Icons.autorenew_rounded,
-    Icons.help_outline_rounded,
-  ];
-
   String _contextSubtitle(String context) {
+    final backendDescription = contextDescriptions[context];
+    if (backendDescription != null && backendDescription.trim().isNotEmpty) {
+      return backendDescription;
+    }
+
     final normalized = context.toLowerCase();
 
     if (normalized.contains('grado')) {
@@ -46,19 +45,13 @@ class AppointmentCategoryContextCard extends StatelessWidget {
 
   Widget _buildContextTile(BuildContext context, String option, int index) {
     final isSelected = selectedContext == option;
-    final icon = _icons[index % _icons.length];
     final scheme = Theme.of(context).colorScheme;
-    final contextPalette =
-        Theme.of(context).extension<AppointmentContextPalette>() ??
-            AppointmentContextPalette.defaults;
-    final iconColor = contextPalette.iconColorFor(index);
-    final iconBackground = contextPalette.iconBackgroundFor(index);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tileColor = scheme.surface;
     final tileBorderColor = isSelected
         ? scheme.primary.withValues(alpha: isDark ? 0.58 : 0.28)
         : scheme.outline.withValues(alpha: isDark ? 0.35 : 0.18);
-    final shadowColor = (isDark ? scheme.shadow : Colors.black)
+    final shadowColor = scheme.shadow
         .withValues(alpha: isDark ? 0.32 : (isSelected ? 0.12 : 0.08));
 
     return InkWell(
@@ -85,16 +78,6 @@ class AppointmentCategoryContextCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: iconColor, size: 28),
-            ),
-            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class DashboardCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
   final LinearGradient? gradient;
   final Color? cardColor;
   final Color? iconColor;
@@ -15,8 +15,8 @@ class DashboardCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
-    required this.icon,
     required this.onTap,
+    this.icon,
     this.imagePath,
     this.cardColor,
     this.gradient,
@@ -42,7 +42,7 @@ class DashboardCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: colorScheme.shadow.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -67,19 +67,21 @@ class DashboardCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: (iconColor ?? colorScheme.primary).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
+                if (icon != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: (iconColor ?? colorScheme.primary).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: iconColor ?? colorScheme.primary,
+                      size: 26,
+                    ),
                   ),
-                  child: Icon(
-                    icon,
-                    color: iconColor ?? colorScheme.primary,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 16),
+                  const SizedBox(width: 16),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

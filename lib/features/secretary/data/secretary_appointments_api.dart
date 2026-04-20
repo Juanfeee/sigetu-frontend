@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:sigetu/core/auth/auth_http.dart';
 import 'package:sigetu/core/constants/appointment_statuses.dart';
 import 'package:sigetu/core/constants/api_constants.dart';
+import 'package:sigetu/core/utils/appointment_sorting.dart';
 import 'package:sigetu/features/secretary/domain/secretary_appointment.dart';
 import 'package:sigetu/features/secretary/domain/secretary_appointment_detail.dart';
 
@@ -61,17 +62,21 @@ class SecretaryAppointmentsApi {
       final decoded = jsonDecode(response.body);
 
       if (decoded is List) {
-        return decoded
+        return sortByScheduledAt(
+          decoded
             .whereType<Map<String, dynamic>>()
-            .map(SecretaryAppointment.fromJson)
-            .toList();
+            .map(SecretaryAppointment.fromJson),
+          (appointment) => appointment.scheduledAt,
+        );
       }
 
       if (decoded is Map<String, dynamic> && decoded['items'] is List) {
-        return (decoded['items'] as List)
+        return sortByScheduledAt(
+          (decoded['items'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(SecretaryAppointment.fromJson)
-            .toList();
+            .map(SecretaryAppointment.fromJson),
+          (appointment) => appointment.scheduledAt,
+        );
       }
 
       return [];
@@ -214,17 +219,21 @@ class SecretaryAppointmentsApi {
       final decoded = jsonDecode(response.body);
 
       if (decoded is List) {
-        return decoded
+        return sortByScheduledAt(
+          decoded
             .whereType<Map<String, dynamic>>()
-            .map(SecretaryAppointment.fromJson)
-            .toList();
+            .map(SecretaryAppointment.fromJson),
+          (appointment) => appointment.scheduledAt,
+        );
       }
 
       if (decoded is Map<String, dynamic> && decoded['items'] is List) {
-        return (decoded['items'] as List)
+        return sortByScheduledAt(
+          (decoded['items'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(SecretaryAppointment.fromJson)
-            .toList();
+            .map(SecretaryAppointment.fromJson),
+          (appointment) => appointment.scheduledAt,
+        );
       }
 
       return [];
@@ -252,17 +261,21 @@ class SecretaryAppointmentsApi {
       final decoded = jsonDecode(response.body);
 
       if (decoded is List) {
-        return decoded
+        return sortByScheduledAt(
+          decoded
             .whereType<Map<String, dynamic>>()
-            .map(SecretaryAppointment.fromJson)
-            .toList();
+            .map(SecretaryAppointment.fromJson),
+          (appointment) => appointment.scheduledAt,
+        );
       }
 
       if (decoded is Map<String, dynamic> && decoded['items'] is List) {
-        return (decoded['items'] as List)
+        return sortByScheduledAt(
+          (decoded['items'] as List)
             .whereType<Map<String, dynamic>>()
-            .map(SecretaryAppointment.fromJson)
-            .toList();
+            .map(SecretaryAppointment.fromJson),
+          (appointment) => appointment.scheduledAt,
+        );
       }
 
       return [];
