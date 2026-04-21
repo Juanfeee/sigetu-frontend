@@ -5,9 +5,10 @@ import 'package:sigetu/features/admin/data/admin_sede_roles_api.dart';
 import 'package:sigetu/features/admin/data/admin_sedes_api.dart';
 import 'package:sigetu/features/admin/presentation/widgets/admin_form_action_buttons.dart';
 import 'package:sigetu/features/admin/presentation/widgets/admin_page_container.dart';
-import 'package:sigetu/features/admin/presentation/widgets/admin_form_section_card.dart';
 import 'package:sigetu/features/admin/presentation/widgets/admin_page_header.dart';
-import 'package:sigetu/features/admin/presentation/widgets/admin_toggle_card.dart';
+import 'package:sigetu/features/admin/presentation/widgets/admin_sede_form_step.dart';
+import 'package:sigetu/features/admin/presentation/widgets/admin_sede_horarios_step.dart';
+import 'package:sigetu/features/admin/presentation/widgets/admin_sede_staff_step.dart';
 import 'package:sigetu/features/headquarters/domain/sede.dart';
 
 class AdminSedeCreateScreen extends StatefulWidget {
@@ -28,23 +29,34 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
   final _ubicacionController = TextEditingController();
   final _descripcionController = TextEditingController();
 
-  // List<AdminRole> _roles = [];
-  // int? _selectedRoleId;
-  // bool _isLoadingRoles = true;
-  // String? _rolesErrorMessage;
-
   bool _esPublica = true;
   bool _filtrarCitasPorPrograma = false;
   bool _activo = true;
+
   bool _isSubmitting = false;
-  bool _showStaffStep = false;
+  bool _isSavingHorarios = false;
   bool _isLoadingStaff = false;
   bool _isAssigningStaff = false;
 
+  int _creationStep = 1;
   int? _createdSedeId;
+
+  AdminHorarioMode _horarioMode = AdminHorarioMode.semanal;
+  final Set<int> _weeklyDays = <int>{};
+  final List<AdminHorarioBlockDraft> _weeklyBlocks = <AdminHorarioBlockDraft>[
+    AdminHorarioBlockDraft(),
+  ];
+  final List<AdminHorarioDiaDraft> _customDays = <AdminHorarioDiaDraft>[
+    AdminHorarioDiaDraft(diaSemana: 1),
+  ];
+
   List<AdminStaffUser> _staffUsers = [];
+  List<AdminStaffUser> _sedeStaffUsers = [];
   final Set<int> _selectedStaffUserIds = <int>{};
   String _staffSearchQuery = '';
+
+  String? _horariosInfoMessage;
+  String? _horariosErrorMessage;
   String? _staffInfoMessage;
   String? _staffErrorMessage;
 
@@ -62,12 +74,8 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
       _esPublica = initialSede.esPublica;
       _filtrarCitasPorPrograma = initialSede.filtrarCitasPorPrograma;
       _activo = initialSede.activo;
-      // _selectedRoleId = initialSede.roleId;
     }
-    // _loadRoles();
   }
-
-  // --- Eliminada lógica de roles ---
 
   @override
   void dispose() {
@@ -78,18 +86,18 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitSede() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
     setState(() {
       _isSubmitting = true;
     });
-    try {
-      String? message;
 
+    try {
       if (_isEditing) {
-        message = await _api.updateSede(
+        final message = await _api.updateSede(
           widget.initialSede!.id,
           codigo: _codigoController.text.trim(),
           nombre: _nombreController.text.trim(),
@@ -101,48 +109,50 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
           filtrarCitasPorPrograma: _filtrarCitasPorPrograma,
           activo: _activo,
         );
-      } else {
-        final result = await _api.createSede(
-          codigo: _codigoController.text.trim(),
-          nombre: _nombreController.text.trim(),
-          ubicacion: _ubicacionController.text.trim(),
-          descripcion: _descripcionController.text.trim().isEmpty
-              ? null
-              : _descripcionController.text.trim(),
-          esPublica: _esPublica,
-          filtrarCitasPorPrograma: _filtrarCitasPorPrograma,
-          activo: _activo,
-        );
+
         if (!mounted) return;
-
-        final createdSedeId = result.sedeId;
-        if (createdSedeId == null || createdSedeId <= 0) {
-          throw Exception(
-            'Se creó la sede, pero el backend no retornó el id para asignar staff.',
-          );
-        }
-
-        setState(() {
-          _createdSedeId = createdSedeId;
-          _showStaffStep = true;
-          _staffInfoMessage =
-              result.message ?? 'Sede creada correctamente. Ahora asigna staff.';
-          _staffErrorMessage = null;
-          _staffSearchQuery = '';
-          _staffUsers = [];
-          _selectedStaffUserIds.clear();
-        });
-        await _loadStaffUsers();
+        await AppToast.showSuccess(
+          context,
+          message: message ?? 'Sede actualizada',
+        );
+        Navigator.of(context).pop(true);
         return;
       }
 
-      if (!mounted) return;
-      await AppToast.showSuccess(
-        context,
-        message: message ?? (_isEditing ? 'Sede actualizada' : 'Sede creada correctamente'),
+      final result = await _api.createSede(
+        codigo: _codigoController.text.trim(),
+        nombre: _nombreController.text.trim(),
+        ubicacion: _ubicacionController.text.trim(),
+        descripcion: _descripcionController.text.trim().isEmpty
+            ? null
+            : _descripcionController.text.trim(),
+        esPublica: _esPublica,
+        filtrarCitasPorPrograma: _filtrarCitasPorPrograma,
+        activo: _activo,
       );
 
-      Navigator.of(context).pop(true);
+      if (!mounted) return;
+
+      final createdSedeId = result.sedeId;
+      if (createdSedeId == null || createdSedeId <= 0) {
+        throw Exception(
+          'Se creó la sede, pero el backend no retornó el id para continuar.',
+        );
+      }
+
+      setState(() {
+        _createdSedeId = createdSedeId;
+        _creationStep = 2;
+        _resetHorarioDraft();
+        _staffUsers = [];
+        _sedeStaffUsers = [];
+        _selectedStaffUserIds.clear();
+        _staffSearchQuery = '';
+        _staffInfoMessage = null;
+        _staffErrorMessage = null;
+        _horariosInfoMessage = result.message ?? 'Sede creada correctamente.';
+        _horariosErrorMessage = null;
+      });
     } catch (error) {
       if (!mounted) return;
       await AppToast.showError(
@@ -158,17 +168,224 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
     }
   }
 
+  void _resetHorarioDraft() {
+    _horarioMode = AdminHorarioMode.semanal;
+    _weeklyDays.clear();
+    _weeklyBlocks
+      ..clear()
+      ..add(AdminHorarioBlockDraft());
+    _customDays
+      ..clear()
+      ..add(AdminHorarioDiaDraft(diaSemana: 1));
+  }
+
+  Future<void> _pickTimeForWeeklyBlock(int blockIndex, bool isStart) async {
+    if (blockIndex < 0 || blockIndex >= _weeklyBlocks.length) return;
+
+    final block = _weeklyBlocks[blockIndex];
+    final initialTime = isStart
+        ? (block.horaInicio ?? const TimeOfDay(hour: 8, minute: 0))
+        : (block.horaFin ?? const TimeOfDay(hour: 12, minute: 0));
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      helpText: isStart ? 'Selecciona hora de inicio' : 'Selecciona hora de fin',
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      if (isStart) {
+        block.horaInicio = picked;
+      } else {
+        block.horaFin = picked;
+      }
+    });
+  }
+
+  Future<void> _pickTimeForCustomBlock(
+    int dayIndex,
+    int blockIndex,
+    bool isStart,
+  ) async {
+    if (dayIndex < 0 || dayIndex >= _customDays.length) return;
+    if (blockIndex < 0 || blockIndex >= _customDays[dayIndex].bloques.length) return;
+
+    final block = _customDays[dayIndex].bloques[blockIndex];
+    final initialTime = isStart
+        ? (block.horaInicio ?? const TimeOfDay(hour: 8, minute: 0))
+        : (block.horaFin ?? const TimeOfDay(hour: 12, minute: 0));
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      helpText: isStart ? 'Selecciona hora de inicio' : 'Selecciona hora de fin',
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      if (isStart) {
+        block.horaInicio = picked;
+      } else {
+        block.horaFin = picked;
+      }
+    });
+  }
+
+  String _toBackendTime(TimeOfDay time) {
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    return '$hh:$mm:00';
+  }
+
+  String? _validateBlock(AdminHorarioBlockDraft block, String label) {
+    if (block.horaInicio == null || block.horaFin == null) {
+      return 'Completa hora inicio y fin para $label.';
+    }
+
+    final startMinutes = block.horaInicio!.hour * 60 + block.horaInicio!.minute;
+    final endMinutes = block.horaFin!.hour * 60 + block.horaFin!.minute;
+
+    if (endMinutes <= startMinutes) {
+      return 'La hora fin debe ser mayor que inicio en $label.';
+    }
+
+    return null;
+  }
+
+  List<Map<String, dynamic>> _buildHorariosLotePayload() {
+    final bloques = <Map<String, dynamic>>[];
+
+    if (_horarioMode == AdminHorarioMode.semanal) {
+      if (_weeklyDays.isEmpty) {
+        throw Exception('Selecciona al menos un día laboral.');
+      }
+      if (_weeklyBlocks.isEmpty) {
+        throw Exception('Agrega al menos un bloque semanal.');
+      }
+
+      final orderedDays = _weeklyDays.toList()..sort();
+      for (var i = 0; i < _weeklyBlocks.length; i++) {
+        final block = _weeklyBlocks[i];
+        final error = _validateBlock(block, 'bloque semanal ${i + 1}');
+        if (error != null) throw Exception(error);
+
+        for (final day in orderedDays) {
+          bloques.add({
+            'dia_semana': day,
+            'hora_inicio': _toBackendTime(block.horaInicio!),
+            'hora_fin': _toBackendTime(block.horaFin!),
+            'activo': true,
+          });
+        }
+      }
+      return bloques;
+    }
+
+    if (_customDays.isEmpty) {
+      throw Exception('Agrega al menos un día personalizado.');
+    }
+
+    for (var dayIndex = 0; dayIndex < _customDays.length; dayIndex++) {
+      final draft = _customDays[dayIndex];
+      if (draft.bloques.isEmpty) {
+        throw Exception('El día personalizado ${dayIndex + 1} no tiene bloques.');
+      }
+
+      for (var blockIndex = 0; blockIndex < draft.bloques.length; blockIndex++) {
+        final block = draft.bloques[blockIndex];
+        final error = _validateBlock(
+          block,
+          'día ${dayIndex + 1}, bloque ${blockIndex + 1}',
+        );
+        if (error != null) throw Exception(error);
+
+        bloques.add({
+          'dia_semana': draft.diaSemana,
+          'hora_inicio': _toBackendTime(block.horaInicio!),
+          'hora_fin': _toBackendTime(block.horaFin!),
+          'activo': true,
+        });
+      }
+    }
+
+    return bloques;
+  }
+
+  Future<void> _saveHorariosAndContinue() async {
+    if (_createdSedeId == null || _createdSedeId! <= 0) {
+      setState(() {
+        _horariosErrorMessage = 'No hay id de sede para registrar horarios.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSavingHorarios = true;
+      _horariosErrorMessage = null;
+    });
+
+    try {
+      final bloques = _buildHorariosLotePayload();
+      final message = await _api.createHorariosSedeLote(
+        _createdSedeId!,
+        bloques: bloques,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _creationStep = 3;
+        _horariosInfoMessage = message ?? 'Horarios guardados correctamente.';
+        _staffInfoMessage = 'Horarios registrados. Ahora asigna usuarios staff.';
+        _staffErrorMessage = null;
+      });
+
+      await _loadStaffUsers();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _horariosErrorMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingHorarios = false;
+        });
+      }
+    }
+  }
+
   Future<void> _loadStaffUsers() async {
+    final sedeId = _createdSedeId;
+    if (sedeId == null || sedeId <= 0) {
+      setState(() {
+        _staffUsers = [];
+        _sedeStaffUsers = [];
+        _staffErrorMessage = 'No hay id de sede para consultar staff.';
+      });
+      return;
+    }
+
     setState(() {
       _isLoadingStaff = true;
       _staffErrorMessage = null;
     });
 
     try {
-      final staffUsers = await _rolesApi.fetchStaffUsers();
+      final results = await Future.wait<List<AdminStaffUser>>([
+        _rolesApi.fetchStaffUsers(sinSede: true),
+        _rolesApi.fetchStaffBySede(sedeId: sedeId, activo: true),
+      ]);
+
+      final staffUsers = results[0];
+      final sedeStaffUsers = results[1];
       if (!mounted) return;
       setState(() {
         _staffUsers = staffUsers;
+        _sedeStaffUsers = sedeStaffUsers;
       });
     } catch (error) {
       if (!mounted) return;
@@ -206,6 +423,7 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
 
     var successCount = 0;
     final failures = <String>[];
+    final successfullyAssigned = <int>[];
 
     for (final userId in _selectedStaffUserIds) {
       try {
@@ -214,6 +432,7 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
           sedeId: _createdSedeId!,
         );
         successCount++;
+        successfullyAssigned.add(userId);
       } catch (error) {
         failures.add(error.toString().replaceFirst('Exception: ', ''));
       }
@@ -223,21 +442,25 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
 
     setState(() {
       _isAssigningStaff = false;
+      for (final userId in successfullyAssigned) {
+        _selectedStaffUserIds.remove(userId);
+      }
       if (successCount > 0) {
         _staffInfoMessage = 'Se asignaron $successCount staff a la sede.';
       }
       if (failures.isNotEmpty) {
-        final detail = failures.first;
         _staffErrorMessage = successCount > 0
-            ? 'Algunas asignaciones fallaron: $detail'
-            : 'No se pudo asignar staff: $detail';
+            ? 'Algunas asignaciones fallaron: ${failures.first}'
+            : 'No se pudo asignar staff: ${failures.first}';
       }
     });
+
+    if (successCount > 0) {
+      await _loadStaffUsers();
+    }
   }
 
   Widget _buildStepIndicator() {
-    final currentStep = _showStaffStep && !_isEditing ? 2 : 1;
-    const totalSteps = 2;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -246,211 +469,14 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.format_list_numbered, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            Icons.format_list_numbered,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 10),
-          Text('Paso $currentStep de $totalSteps'),
+          Text('Paso $_creationStep de 3'),
         ],
       ),
-    );
-  }
-
-  Widget _buildFormStep() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          AdminFormSectionCard(
-            icon: Icons.badge_outlined,
-            title: 'Nombre de la Sede',
-            child: TextFormField(
-              controller: _nombreController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                hintText: 'Ej: Sede Administrativa',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.length < 2) return 'Mínimo 2 caracteres';
-                if (text.length > 120) return 'Máximo 120 caracteres';
-                return null;
-              },
-            ),
-          ),
-          const SizedBox(height: 14),
-          AdminFormSectionCard(
-            icon: Icons.location_on_outlined,
-            title: 'Dirección',
-            child: TextFormField(
-              controller: _ubicacionController,
-              textInputAction: TextInputAction.next,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Ej: Calle 5 # 3-85, Popayán',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.length < 1) return 'La ubicación es obligatoria';
-                if (text.length > 255) return 'Máximo 255 caracteres';
-                return null;
-              },
-            ),
-          ),
-          const SizedBox(height: 14),
-          AdminFormSectionCard(
-            icon: Icons.confirmation_number_outlined,
-            title: 'Código interno',
-            child: TextFormField(
-              controller: _codigoController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                hintText: 'Ej: sede123',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.length < 2) return 'Mínimo 2 caracteres';
-                if (text.length > 50) return 'Máximo 50 caracteres';
-                return null;
-              },
-            ),
-          ),
-          const SizedBox(height: 14),
-          AdminFormSectionCard(
-            icon: Icons.notes_outlined,
-            title: 'Descripción',
-            subtitle: 'Opcional',
-            child: TextFormField(
-              controller: _descripcionController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Descripción breve de la sede',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.length > 255) return 'Máximo 255 caracteres';
-                return null;
-              },
-            ),
-          ),
-          const SizedBox(height: 14),
-          AdminToggleCard(
-            items: [
-              AdminToggleItem(
-                title: 'Es pública',
-                value: _esPublica,
-                onChanged: (value) => setState(() => _esPublica = value),
-              ),
-              AdminToggleItem(
-                title: 'Filtrar citas por programa',
-                value: _filtrarCitasPorPrograma,
-                onChanged: (value) => setState(() => _filtrarCitasPorPrograma = value),
-              ),
-              AdminToggleItem(
-                title: 'Activa',
-                value: _activo,
-                onChanged: (value) => setState(() => _activo = value),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStaffStep() {
-    final normalizedQuery = _staffSearchQuery.trim().toLowerCase();
-    final filteredStaffUsers = normalizedQuery.isEmpty
-        ? _staffUsers
-        : _staffUsers.where((staff) {
-            final name = staff.fullName.toLowerCase();
-            final email = staff.email.toLowerCase();
-            return name.contains(normalizedQuery) || email.contains(normalizedQuery);
-          }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AdminFormSectionCard(
-          icon: Icons.group_add_outlined,
-          title: 'Asignar Staff',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_staffInfoMessage != null) ...[
-                Text(
-                  _staffInfoMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
-                ),
-                const SizedBox(height: 10),
-              ],
-              if (_staffErrorMessage != null) ...[
-                Text(
-                  _staffErrorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 10),
-              ],
-              TextField(
-                onChanged: (value) {
-                  setState(() {
-                    _staffSearchQuery = value;
-                  });
-                },
-                decoration: const InputDecoration(
-                  hintText: 'Buscar por nombre o correo',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (_isLoadingStaff)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 18),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_staffUsers.isEmpty)
-                const Text('No hay usuarios staff disponibles.')
-              else if (filteredStaffUsers.isEmpty)
-                const Text('No hay resultados para la búsqueda.')
-              else
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 360),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: filteredStaffUsers.length,
-                    itemBuilder: (context, index) {
-                      final staff = filteredStaffUsers[index];
-                      final isSelected = _selectedStaffUserIds.contains(staff.id);
-                      return CheckboxListTile(
-                        value: isSelected,
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(staff.displayLabel),
-                        onChanged: (checked) {
-                          setState(() {
-                            if (checked == true) {
-                              _selectedStaffUserIds.add(staff.id);
-                            } else {
-                              _selectedStaffUserIds.remove(staff.id);
-                            }
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -458,46 +484,164 @@ class _AdminSedeCreateScreenState extends State<AdminSedeCreateScreen> {
   Widget build(BuildContext context) {
     final hPad = Responsive.horizontalPadding(context);
     final screenTitle = _isEditing ? 'Editar Sede' : 'Nueva Sede';
+
     return AdminPageContainer(
       title: screenTitle,
       body: ListView(
-          padding: EdgeInsets.fromLTRB(hPad, 18, hPad, 24),
-          children: [
-            AdminPageHeader(
-              title: screenTitle,
-              subtitle: _isEditing
-                  ? 'Actualiza la información de la sede'
-                  : (_showStaffStep
-                      ? 'Paso 2: asigna los usuarios staff a la sede'
-                      : 'Paso 1: registra la información de la sede'),
-              icon: _isEditing ? Icons.edit_location_alt_outlined : Icons.apartment_outlined,
-            ),
-            const SizedBox(height: 18),
-            if (!_isEditing) ...[
-              _buildStepIndicator(),
-              const SizedBox(height: 14),
-            ],
-            _showStaffStep && !_isEditing ? _buildStaffStep() : _buildFormStep(),
-            const SizedBox(height: 20),
-            if (_showStaffStep && !_isEditing)
-              AdminFormActionButtons(
-                primaryLabel: 'Asignar seleccionados',
-                primaryOnPressed: _isAssigningStaff ? null : _assignSelectedStaff,
-                secondaryLabel: 'Finalizar',
-                secondaryOnPressed: () => Navigator.of(context).pop(true),
-                isPrimaryLoading: _isAssigningStaff,
-              )
-            else
-              AdminFormActionButtons(
-                primaryLabel: _isEditing ? 'Actualizar sede' : 'Guardar y continuar',
-                primaryOnPressed: _submit,
-                secondaryLabel: 'Volver',
-                secondaryOnPressed: () => Navigator.of(context).pop(),
-                isPrimaryLoading: _isSubmitting,
-              ),
+        padding: EdgeInsets.fromLTRB(hPad, 18, hPad, 24),
+        children: [
+          AdminPageHeader(
+            title: screenTitle,
+            subtitle: _isEditing
+                ? 'Actualiza la información de la sede'
+                : _creationStep == 1
+                    ? 'Paso 1: registra la información de la sede'
+                    : _creationStep == 2
+                        ? 'Paso 2: configura horarios por lote'
+                        : 'Paso 3: asigna los usuarios staff a la sede',
+            icon: _isEditing ? Icons.edit_location_alt_outlined : Icons.apartment_outlined,
+          ),
+          const SizedBox(height: 18),
+          if (!_isEditing) ...[
+            _buildStepIndicator(),
+            const SizedBox(height: 14),
           ],
+          if (_isEditing || _creationStep == 1)
+            AdminSedeFormStep(
+              formKey: _formKey,
+              codigoController: _codigoController,
+              nombreController: _nombreController,
+              ubicacionController: _ubicacionController,
+              descripcionController: _descripcionController,
+              esPublica: _esPublica,
+              filtrarCitasPorPrograma: _filtrarCitasPorPrograma,
+              activo: _activo,
+              onEsPublicaChanged: (value) => setState(() => _esPublica = value),
+              onFiltrarCitasChanged: (value) => setState(() => _filtrarCitasPorPrograma = value),
+              onActivoChanged: (value) => setState(() => _activo = value),
+            )
+          else if (_creationStep == 2)
+            AdminSedeHorariosStep(
+              mode: _horarioMode,
+              weeklyDays: _weeklyDays,
+              weeklyBlocks: _weeklyBlocks,
+              customDays: _customDays,
+              isLoading: _isSavingHorarios,
+              infoMessage: _horariosInfoMessage,
+              errorMessage: _horariosErrorMessage,
+              onModeChanged: (value) {
+                setState(() {
+                  _horarioMode = value;
+                  _horariosErrorMessage = null;
+                });
+              },
+              onToggleWeeklyDay: (day, selected) {
+                setState(() {
+                  if (selected) {
+                    _weeklyDays.add(day);
+                  } else {
+                    _weeklyDays.remove(day);
+                  }
+                });
+              },
+              onPickWeeklyTime: _pickTimeForWeeklyBlock,
+              onAddWeeklyBlock: () {
+                setState(() {
+                  _weeklyBlocks.add(AdminHorarioBlockDraft());
+                });
+              },
+              onRemoveWeeklyBlock: (index) {
+                if (_weeklyBlocks.length == 1) return;
+                setState(() {
+                  _weeklyBlocks.removeAt(index);
+                });
+              },
+              onAddCustomDay: () {
+                setState(() {
+                  _customDays.add(AdminHorarioDiaDraft(diaSemana: 1));
+                });
+              },
+              onRemoveCustomDay: (dayIndex) {
+                if (_customDays.length == 1) return;
+                setState(() {
+                  _customDays.removeAt(dayIndex);
+                });
+              },
+              onCustomDayChanged: (dayIndex, dayValue) {
+                setState(() {
+                  _customDays[dayIndex].diaSemana = dayValue;
+                });
+              },
+              onPickCustomTime: _pickTimeForCustomBlock,
+              onAddCustomBlock: (dayIndex) {
+                setState(() {
+                  _customDays[dayIndex].bloques.add(AdminHorarioBlockDraft());
+                });
+              },
+              onRemoveCustomBlock: (dayIndex, blockIndex) {
+                if (_customDays[dayIndex].bloques.length == 1) return;
+                setState(() {
+                  _customDays[dayIndex].bloques.removeAt(blockIndex);
+                });
+              },
+            )
+          else
+            AdminSedeStaffStep(
+              staffUsers: _staffUsers,
+              sedeStaffUsers: _sedeStaffUsers,
+              selectedStaffUserIds: _selectedStaffUserIds,
+              searchQuery: _staffSearchQuery,
+              isLoading: _isLoadingStaff,
+              infoMessage: _staffInfoMessage,
+              errorMessage: _staffErrorMessage,
+              onSearchChanged: (value) {
+                setState(() {
+                  _staffSearchQuery = value;
+                });
+              },
+              onToggleUser: (userId) {
+                setState(() {
+                  if (_selectedStaffUserIds.contains(userId)) {
+                    _selectedStaffUserIds.remove(userId);
+                  } else {
+                    _selectedStaffUserIds.add(userId);
+                  }
+                });
+              },
+            ),
+          const SizedBox(height: 20),
+          if (!_isEditing && _creationStep == 3)
+            AdminFormActionButtons(
+              primaryLabel: 'Asignar seleccionados',
+              primaryOnPressed: _isAssigningStaff ? null : _assignSelectedStaff,
+              secondaryLabel: 'Finalizar',
+              secondaryOnPressed: () => Navigator.of(context).pop(true),
+              isPrimaryLoading: _isAssigningStaff,
+            )
+          else if (!_isEditing && _creationStep == 2)
+            AdminFormActionButtons(
+              primaryLabel: 'Guardar horarios y continuar',
+              primaryOnPressed: _isSavingHorarios ? null : _saveHorariosAndContinue,
+              secondaryLabel: 'Volver a datos',
+              secondaryOnPressed: _isSavingHorarios
+                  ? null
+                  : () {
+                      setState(() {
+                        _creationStep = 1;
+                      });
+                    },
+              isPrimaryLoading: _isSavingHorarios,
+            )
+          else
+            AdminFormActionButtons(
+              primaryLabel: _isEditing ? 'Actualizar sede' : 'Guardar y continuar',
+              primaryOnPressed: _submitSede,
+              secondaryLabel: 'Volver',
+              secondaryOnPressed: () => Navigator.of(context).pop(),
+              isPrimaryLoading: _isSubmitting,
+            ),
+        ],
       ),
     );
   }
 }
-

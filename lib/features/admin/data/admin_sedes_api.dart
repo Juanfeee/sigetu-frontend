@@ -241,6 +241,33 @@ class AdminSedesApi {
     throw Exception('Error del servidor: ${response.statusCode}');
   }
 
+  Future<String?> createHorariosSedeLote(
+    int sedeId, {
+    required List<Map<String, dynamic>> bloques,
+  }) async {
+    final url = Uri.parse('$baseUrl/sedes/$sedeId/horarios/lote');
+    final payload = <String, dynamic>{
+      'bloques': bloques,
+    };
+
+    final response = await AuthHttp.post(url, body: jsonEncode(payload));
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return _extractSuccessMessage(response.body);
+    }
+
+    if (response.statusCode == 400 ||
+        response.statusCode == 401 ||
+        response.statusCode == 403 ||
+        response.statusCode == 404 ||
+        response.statusCode == 409 ||
+        response.statusCode == 422) {
+      throw Exception(_extractErrorMessage(response.body));
+    }
+
+    throw Exception('Error del servidor: ${response.statusCode}');
+  }
+
   Future<List<Map<String, dynamic>>> fetchHorariosSede(int sedeId) async {
     final url = Uri.parse('$baseUrl/sedes/$sedeId/horarios');
     final response = await AuthHttp.get(url);

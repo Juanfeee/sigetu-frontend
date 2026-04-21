@@ -21,6 +21,7 @@ class AdminFormActionButtons extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton(
           onPressed: isPrimaryLoading ? null : primaryOnPressed,

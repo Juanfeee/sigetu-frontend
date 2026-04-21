@@ -87,9 +87,24 @@ class AdminSedeRolesApi {
     return const [];
   }
 
-  Future<List<AdminStaffUser>> fetchStaffUsers() async {
+  Future<List<AdminStaffUser>> fetchStaffUsers({
+    bool? sinSede,
+    int? sedeId,
+    bool? activo,
+  }) async {
+    final queryParameters = <String, String>{};
+    if (sinSede != null) {
+      queryParameters['sin_sede'] = sinSede.toString();
+    }
+    if (sedeId != null && sedeId > 0) {
+      queryParameters['sede_id'] = '$sedeId';
+    }
+    if (activo != null) {
+      queryParameters['activo'] = activo.toString();
+    }
+
     final url = Uri.parse('$baseUrl/staff').replace(
-      queryParameters: const {'sin_sede': 'true'},
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
     final response = await AuthHttp.get(url);
 
@@ -111,6 +126,13 @@ class AdminSedeRolesApi {
     }
 
     throw Exception('Error del servidor: ${response.statusCode}');
+  }
+
+  Future<List<AdminStaffUser>> fetchStaffBySede({
+    required int sedeId,
+    bool activo = true,
+  }) {
+    return fetchStaffUsers(sedeId: sedeId, activo: activo);
   }
 
   Future<String?> assignStaffToSede({
