@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class ApiConstants {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://sigetu-backend.onrender.com'
+    defaultValue: 'https://sigetu-bk.onrender.com'
   );
 
   static const String appointmentsWsUrlOverride = String.fromEnvironment(
