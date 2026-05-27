@@ -1,29 +1,32 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://sigetu-bk.onrender.com'
-  );
 
-  static const String appointmentsWsUrlOverride = String.fromEnvironment(
-    'APPOINTMENTS_WS_URL',
-    defaultValue: '',
-  );
+  // URL FIJA DEL BACKEND
+  static const String baseUrl = 'https://sigetu-bk.onrender.com';
 
-  static const int backendTimezoneOffsetMinutes = int.fromEnvironment(
-    'BACKEND_TIMEZONE_OFFSET_MINUTES',
-    defaultValue: -300,
-  );
+  // WebSocket opcional
+  static const String appointmentsWsUrlOverride = '';
+
+  static const int backendTimezoneOffsetMinutes = -300;
 
   static String get appointmentsWsUrl {
+
     if (appointmentsWsUrlOverride.isNotEmpty) {
       return appointmentsWsUrlOverride;
     }
 
     final uri = Uri.parse(baseUrl);
-    final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
 
-    return uri.replace(scheme: scheme, path: '/appointments/ws').toString();
+    final scheme = uri.scheme == 'https'
+        ? 'wss'
+        : 'ws';
+
+    return uri
+        .replace(
+          scheme: scheme,
+          path: '/appointments/ws',
+        )
+        .toString();
   }
 }
