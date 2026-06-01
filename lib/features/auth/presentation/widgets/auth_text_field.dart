@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AuthTextField extends StatelessWidget {
+class AuthTextField extends StatefulWidget {
   final String label;
   final IconData icon;
   final TextEditingController controller;
@@ -31,19 +31,44 @@ class AuthTextField extends StatelessWidget {
   });
 
   @override
+  State<AuthTextField> createState() => _AuthTextFieldState();
+}
+
+class _AuthTextFieldState extends State<AuthTextField> {
+  late bool _obscure;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscure = widget.obscureText;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      validator: validator,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      autofillHints: autofillHints,
-      autocorrect: autocorrect && !obscureText,
-      enableSuggestions: enableSuggestions && !obscureText,
-      focusNode: focusNode,
-      onEditingComplete: onEditingComplete,
-      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+      controller: widget.controller,
+      obscureText: _obscure,
+      validator: widget.validator,
+      keyboardType: widget.keyboardType,
+      textInputAction: widget.textInputAction,
+      autofillHints: widget.autofillHints,
+      autocorrect: widget.autocorrect && !_obscure,
+      enableSuggestions: widget.enableSuggestions && !_obscure,
+      focusNode: widget.focusNode,
+      onEditingComplete: widget.onEditingComplete,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        prefixIcon: Icon(widget.icon),
+        suffixIcon: widget.obscureText
+            ? IconButton(
+                icon: Icon(
+                  _obscure ? Icons.visibility_off : Icons.visibility,
+                ),
+                tooltip: _obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
+                onPressed: () => setState(() => _obscure = !_obscure),
+              )
+            : null,
+      ),
     );
   }
 }

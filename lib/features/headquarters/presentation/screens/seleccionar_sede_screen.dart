@@ -46,7 +46,7 @@ class SeleccionarSedeScreen extends StatelessWidget {
         : DashboardCard(
             title: 'Sede Administrativa',
             subtitle: 'Trámites y documentación',
-            imagePath: 'assets/images/asistencia_estudiantil.svg',
+            imagePath: 'assets/images/asistencia_estudiantil.png',
             icon: Icons.apartment_outlined,
             onTap: () {
               Navigator.push(
