@@ -1,0 +1,39 @@
+workflows:
+  ios-unsigned:
+    name: iOS Unsigned IPA para AltStore
+
+    max_build_duration: 60
+
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
+      - name: Instalar CocoaPods
+        script: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build iOS sin firma
+        script: |
+          flutter build ios --release --no-codesign
+
+      - name: Crear IPA manual
+        script: |
+          mkdir -p build/ios/ipa
+          rm -rf Payload
+          mkdir Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r sigetu-ios.ipa Payload
+          mv sigetu-ios.ipa build/ios/ipa/
+
+    artifacts:
+      - build/ios/ipa/*.ipa
